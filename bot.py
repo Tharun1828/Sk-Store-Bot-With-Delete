@@ -91,20 +91,27 @@ async def start(bot: Client, cmd: Message):
                 file_id = int(usr_cmd.split("_")[-1])
             GetMessage = await bot.get_messages(chat_id=Config.DB_CHANNEL, message_ids=file_id)
             message_ids = []
+            del_msg = []
+             x = 0
             if GetMessage.text:
-                message_ids = GetMessage.text.split(" ")
-                _response_msg = await cmd.reply_text(
-                    text=f"**Total Files:** `{len(message_ids)}`",
-                    quote=True,
-                    parse_mode="Markdown",
-                    disable_web_page_preview=True
-                )
+               message_ids = GetMessage.text.split(" ")
             else:
-                message_ids.append(int(GetMessage.message_id))
+               message_ids.append(int(GetMessage.message_id))
             for i in range(len(message_ids)):
-                await send_media_and_reply(bot, user_id=cmd.from_user.id, file_id=int(message_ids[i]))
-        except Exception as err:
-            await cmd.reply_text(f"Something went wrong!\n\n**Error:** `{err}`")
+               try:
+                   media = await SendMediaAndReply(bot, user_id=cmd.from_user.id, file_id=int(message_ids[i]))
+               except:
+                   if x == 0:
+                       media = await SendMediaAndReply(bot, user_id=cmd.from_user.id, file_id=int(GetMessage.message_id))
+                       x+=1 
+                   else:
+                        break
+#                  media = await SendMediaAndReply(bot, user_id=cmd.from_user.id, file_id=int(message_ids[i]))
+                 del_msg.append(media)
+             await cmd.reply_text("**⏰Files Will Auto Delete In 30Mins...**\n↗️__Forward It Anywhere Or Save It Privetly Before Downloading...__")
+             scheduler.add_job(job, "interval", seconds=1800, id=str(cmd.message_id), args=[cmd.from_user.id, del_msg, cmd.message_id])
+         except Exception as err:
+             await cmd.reply_text(f"Something went wrong!\n\n**Error:** `{err}`")
 
 
 @Bot.on_message((filters.document | filters.video | filters.audio) & ~filters.edited & ~filters.chat(Config.DB_CHANNEL))
@@ -148,7 +155,7 @@ async def main(bot: Client, message: Message):
         try:
             forwarded_msg = await message.forward(Config.DB_CHANNEL)
             file_er_id = str(forwarded_msg.message_id)
-            share_link = f"https://t.me/{Config.BOT_USERNAME}?start=SkMedia{str_to_b64(file_er_id)}"
+            share_link = f"https://telegram.me/{Config.BOT_USERNAME}?start=SkMedia{str_to_b64(file_er_id)}"
             CH_edit = await bot.edit_message_reply_markup(message.chat.id, message.message_id,
                                                           reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
                                                               "Get Sharable Link", url=share_link)]]))
